@@ -1,39 +1,74 @@
-import os
-from socket import socket, AF_INET, SOCK_STREAM
+import errno
+import socket
 import sys
 
-SERVER_HOST = ""
-SERVER_PORT = int(sys.argv[1])
-
-server_sock = socket(AF_INET, SOCK_STREAM)
-server_sock.bind((SERVER_HOST, SERVER_PORT))
-server_sock.listen(5)
-
-def list_dirs(root_dir):
-    for item in os.scandir(root_dir):
-        if item.is_dir():
-            list_dirs(item)
-        print(item.name)
+sys.path.append('..')
+from util import Logger
 
 
-def list_files(root_dir):
-    SPACE = ' '
-    INDENT_SPACES = 4
+def get_server_arguments():
+    """"""
 
-    for root, dirs, files in os.walk(root_dir):
-        level = root.replace(root_dir, '', 1).count(os.sep)
-        indent = SPACE * INDENT_SPACES * level
-        sub_indent = SPACE * INDENT_SPACES * (level + 1)
+    SERVER_HOST = ""
+    SERVER_PORT = None
 
-        print_file(indent, os.path.basename(root) + "/")
-        for file in files:
-            print_file(sub_indent, file)
+    if len(sys.argv) >= 2:
+        SERVER_PORT = sys.argv[1]
+
+    return SERVER_HOST, SERVER_PORT
 
 
-def print_file(indentation_level, file_name):
-    print(f"{indentation_level}{file_name}")
+def create_connection(SERVER_HOST, SERVER_PORT, LOGGER):
+    """"""
+    server_sock = None
+
+    try:
+        server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_sock.bind((SERVER_HOST, int(SERVER_PORT)))
+        server_sock.listen(5)
+    except socket.error as soe:
+        if soe.errno == errno.ECONNREFUSED:
+            LOGGER.info(soe)
+        sys.exit(1)
+    finally:
+        return server_sock
 
 
-rootdir = os.path.join("data")
-list_dirs(rootdir)
-list_files(rootdir)
+def file_transfer(server_sock):
+    """"""
+    SERVER_COMMAND = None
+    SERVER_FILE = None
+
+    while True:
+        received = True
+        cli_sock, cli_addr = server_sock.accept()
+
+        while received:
+            request = cli_sock.recv(1024)
+
+            if request.decode('utf-8') == "EXIT":
+                received = False
+            else:
+                print(request.decode('utf-8'))
+
+                input_message = input("Please enter the message that you want to send: ")
+
+                if input_message == "EXIT":
+                    received = False
+                cli_sock.sendall(input_message.encode('utf-8'))
+
+        cli_sock.close()
+
+
+def main():
+    """Main Method For Client"""
+
+    SERVER_HOST, SERVER_PORT = get_server_arguments()
+    LOGGER = Logger(SERVER_HOST, SERVER_PORT)
+
+    server_sock = create_connection(SERVER_HOST, SERVER_PORT, LOGGER)
+    file_transfer(server_sock)
+
+
+if __name__ == "__main__":
+    main()
