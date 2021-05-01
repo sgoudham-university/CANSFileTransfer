@@ -1,73 +1,56 @@
-import errno
-import socket
 import sys
 
 sys.path.append('..')
-from util import Logger
+from util import Logger, create_connection
 
 
-def get_server_arguments():
-    """"""
+class Server:
+    def __init__(self):
+        self.HOST = ""
+        self.PORT = None
+        self.COMMAND = None
+        self.FILE = None
+        self.SOCKET = None
+        self.LOGGER = None
 
-    SERVER_HOST = ""
-    SERVER_PORT = None
+        self.get_arguments()
 
-    if len(sys.argv) >= 2:
-        SERVER_PORT = sys.argv[1]
+        self.LOGGER = Logger(self.HOST, self.PORT)
+        self.SOCKET = create_connection(self.HOST, self.PORT, "server", "client", self.LOGGER)
 
-    return SERVER_HOST, SERVER_PORT
+    def get_arguments(self):
+        """"""
 
+        if len(sys.argv) >= 2:
+            self.PORT = sys.argv[1]
 
-def create_connection(SERVER_HOST, SERVER_PORT, LOGGER):
-    """"""
-    server_sock = None
+    def handle(self):
+        """"""
 
-    try:
-        server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_sock.bind((SERVER_HOST, int(SERVER_PORT)))
-        server_sock.listen(5)
-    except socket.error as soe:
-        if soe.errno == errno.ECONNREFUSED:
-            LOGGER.info(soe)
-        sys.exit(1)
-    finally:
-        return server_sock
+        while True:
+            received = True
+            cli_sock, cli_addr = self.SOCKET.accept()
 
+            while received:
+                request = cli_sock.recv(1024)
 
-def file_transfer(server_sock):
-    """"""
-    SERVER_COMMAND = None
-    SERVER_FILE = None
-
-    while True:
-        received = True
-        cli_sock, cli_addr = server_sock.accept()
-
-        while received:
-            request = cli_sock.recv(1024)
-
-            if request.decode('utf-8') == "EXIT":
-                received = False
-            else:
-                print(request.decode('utf-8'))
-
-                input_message = input("Please enter the message that you want to send: ")
-
-                if input_message == "EXIT":
+                if request.decode('utf-8') == "EXIT":
                     received = False
-                cli_sock.sendall(input_message.encode('utf-8'))
+                else:
+                    print(request.decode('utf-8'))
 
-        cli_sock.close()
+                    input_message = input("Please enter the message that you want to send: ")
+
+                    if input_message == "EXIT":
+                        received = False
+                    cli_sock.sendall(input_message.encode('utf-8'))
+
+            cli_sock.close()
 
 
 def main():
-    """Main Method For Client"""
-
-    SERVER_HOST, SERVER_PORT = get_server_arguments()
-    LOGGER = Logger(SERVER_HOST, SERVER_PORT)
-
-    server_sock = create_connection(SERVER_HOST, SERVER_PORT, LOGGER)
-    file_transfer(server_sock)
+    server = Server()
+    server.handle()
 
 
 if __name__ == "__main__":
