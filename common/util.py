@@ -22,15 +22,19 @@ def create_connection(HOST, PORT, LOCAL_MACHINE, LOGGER):
         elif LOCAL_MACHINE == "server":
             general_socket.bind((HOST, int(PORT)))
             general_socket.listen(5)
-
     except socket.error as soe:
         LOGGER.info(soe)
         sys.exit(1)
     except Exception as exp:
         LOGGER.error(exp)
         sys.exit(1)
-
-    return general_socket
+    else:
+        if LOCAL_MACHINE == "client":
+            LOGGER.info(f"Connection Success to [{HOST}:{PORT}]")
+        elif LOCAL_MACHINE == "server":
+            LOGGER.info(f"Establishing Server Connection [...]")
+            LOGGER.info(f"Connection Established!")
+        return general_socket
 
 
 def recv_header(gen_socket, HEADER_SIZE, LOGGER):
@@ -42,7 +46,8 @@ def recv_header(gen_socket, HEADER_SIZE, LOGGER):
 
     try:
         while not len(complete_header) - HEADER_SIZE == message_length:
-            request = gen_socket.recv(32)
+            request = gen_socket.recv(48)
+            if not request: break
 
             if incoming_message:
                 message_length = int(request[:HEADER_SIZE])
@@ -51,6 +56,8 @@ def recv_header(gen_socket, HEADER_SIZE, LOGGER):
 
             if len(complete_header) - HEADER_SIZE == message_length:
                 print(complete_header[HEADER_SIZE:])
+                incoming_message = True
+                complete_header = ""
     except socket.error as soe:
         LOGGER.info(soe)
         return False
@@ -82,14 +89,10 @@ def recv_listing(socket):
     """"""
 
 
-def isValidFile(file_name):
-    return os.path.isfile(file_name)
+def isValidFile(file):
+    return os.path.isfile(file)
 
 
 def list_dirs(root_dir):
     for item in os.scandir(root_dir):
         print(item.name)
-#
-#
-# root_dir = os.path.join("server", "data")
-# list_dirs(root_dir)
