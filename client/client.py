@@ -1,11 +1,10 @@
-import os
 import sys
 
 sys.path.append('..')
-from common.status_code import Error, Success
+from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
-from common.util import isValidFile, create_connection
+from common.util import create_connection, transfer_file
 
 
 class Client:
@@ -32,8 +31,8 @@ class Client:
             self.PORT = sys.argv[2]
             self.COMMAND = sys.argv[3]
             self.FILE = sys.argv[4]
-        except IndexError as ixe:
-            print(Error.ONE)
+        except IndexError:
+            print(StatusCode.code[1000])
             sys.exit(1)
 
     def handle(self):
@@ -45,22 +44,11 @@ class Client:
 
         while connection:
             if self.COMMAND == Command.PUT:
-                file_path = os.path.join("data", self.FILE)
-
-                if not isValidFile(file_path):
-                    self.LOGGER.status_code(Error.THREE)
-                    sys.exit(1)
-
-                self.LOGGER.info(f"Reading File '{self.FILE}'! [...]")
-                target_file_bytes = open(file_path, 'rb').read()
-
                 self.LOGGER.info(f"Sending File '{self.FILE}'! [...]")
-                message = f"{self.COMMAND}{SEPARATOR}{self.FILE}{SEPARATOR}{target_file_bytes.decode('utf-8')}"
-                header = f"{len(message):<{HEADER_SIZE}}" + message
-
-                self.SOCKET.send(header.encode('utf-8'))
-
-                self.LOGGER.status_code(Success.ONE)
+                status = transfer_file(self, SEPARATOR, HEADER_SIZE)
+                if not status:
+                    self.LOGGER.status_code(StatusCode.code[3000] + status)
+                    break
 
             elif self.COMMAND == Command.GET:
                 pass
@@ -69,23 +57,15 @@ class Client:
                 pass
                 # call recv_listing
             else:
-                self.LOGGER.status_code(Error.TWO)
+                self.LOGGER.status_code(StatusCode.code[1001])
                 sys.exit(1)
+
+            # status_header, new_overflow = recv_message(self.SOCKET, HEADER_SIZE, self.LOGGER)
+            # print(status_header)
+            # if not status_header: break
 
             connection = False
         self.SOCKET.close()
-
-        # tracemalloc.start()
-        # target_file_bytes = b''
-        # with open(file_path, 'rb') as target_file:
-        #     while True:
-        #         file_chunk = target_file.read(10000024)
-        #         print(file_chunk)
-        #         if file_chunk == b'': break
-        #         target_file_bytes += file_chunk
-        # current, peak = tracemalloc.get_traced_memory()
-        # print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB")
-        # tracemalloc.stop()
 
 
 def main():
