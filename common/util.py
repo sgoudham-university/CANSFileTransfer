@@ -41,6 +41,7 @@ def recv_header(gen_socket, HEADER_SIZE, LOGGER):
     """"""
 
     complete_header = ""
+    overflow = ""
     message_length = 0
     incoming_message = True
 
@@ -54,10 +55,58 @@ def recv_header(gen_socket, HEADER_SIZE, LOGGER):
                 incoming_message = False
             complete_header += request.decode("utf-8")
 
+            if len(complete_header) - HEADER_SIZE >= message_length:
+                header_with_overflow = complete_header[HEADER_SIZE:]
+                complete_header = header_with_overflow[:message_length]
+                overflow = header_with_overflow[message_length:]
+                break
+
             if len(complete_header) - HEADER_SIZE == message_length:
                 print(complete_header[HEADER_SIZE:])
                 incoming_message = True
-                complete_header = ""
+    except socket.error as soe:
+        LOGGER.info(soe)
+        return False
+    except Exception as exp:
+        LOGGER.error(exp)
+        return False
+    else:
+        LOGGER.info(f"Header Received! [{', '.join(complete_header.split())}]")
+        return complete_header, overflow
+
+
+def recv_message(gen_socket, HEADER_SIZE, OVERFLOW, LOGGER):
+    """"""
+
+    complete_header = ""
+    overflow = OVERFLOW
+    complete_header += OVERFLOW
+    message_length = 0
+    incoming_message = True
+
+    try:
+        counter = 1
+        while not len(complete_header) - HEADER_SIZE == message_length:
+            request = gen_socket.recv(48)
+            if not request: break
+
+            if incoming_message:
+                if not overflow: message_length = int(request[:HEADER_SIZE])
+                incoming_message = False
+
+            complete_header += request.decode("utf-8")
+            if counter == 1: message_length = int(complete_header[:HEADER_SIZE])
+
+            if len(complete_header) - HEADER_SIZE > message_length:
+                header_with_overflow = complete_header[HEADER_SIZE:]
+                complete_header = header_with_overflow[:message_length]
+                overflow = header_with_overflow[message_length:]
+
+            if len(complete_header) - HEADER_SIZE == message_length:
+                print(complete_header[HEADER_SIZE:])
+                incoming_message = True
+            counter = counter + 1
+
     except socket.error as soe:
         LOGGER.info(soe)
         return False
@@ -66,7 +115,7 @@ def recv_header(gen_socket, HEADER_SIZE, LOGGER):
         return False
     else:
         LOGGER.info(f"Header Received! [{', '.join(complete_header[HEADER_SIZE:].split())}]")
-        return complete_header[HEADER_SIZE:]
+        return complete_header[HEADER_SIZE:].encode('utf-8'), overflow
 
 
 def send_header(socket, HEADER_SIZE):

@@ -56,14 +56,13 @@ class Client:
                 self.SOCKET.send(header.encode('utf-8'))
 
                 with open(file_path, 'rb', 256) as file:
-                    file_bytes = b''
                     while True:
                         message = file.read(1024)
                         if not message: break
                         header = f"{len(message):<{HEADER_SIZE}}" + message.decode('utf-8')
                         self.SOCKET.sendall(header.encode('utf-8'))
 
-                        # Send the request type, filename and file_data as one
+                # Send the request type, filename and file_data as one
 
                 # Generate Header Message with type of request, size of filename and file data in bytes
                 # Send over header message

@@ -5,7 +5,7 @@ import sys
 sys.path.append('..')
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, recv_header
+from common.util import create_connection, recv_header, recv_message
 
 
 class Server:
@@ -50,18 +50,17 @@ class Server:
             else:
                 connection = True
                 while connection:
-                    header = recv_header(cli_socket, HEADER_SIZE, self.LOGGER)
+                    header, overflow = recv_header(cli_socket, HEADER_SIZE, self.LOGGER)
                     if not header: break
 
                     REQUEST_TYPE, FILE_NAME = header.split(SEPARATOR)
 
-                    with open(os.path.join(self.DATA, FILE_NAME), "wb+", 4096) as file:
-                        bytes_received = 0
+                    with open(os.path.join(self.DATA, FILE_NAME), "wb") as file:
                         while True:
-                            request = cli_socket.recv(1024)
-                            if not request: break
-                            bytes_received += len(request)
-                            file.write(request)
+                            file_data, new_overflow = recv_message(cli_socket, HEADER_SIZE, overflow, self.LOGGER)
+                            if not file_data: break
+                            file.write(file_data)
+                            overflow = new_overflow
 
                     # file_name_bytes_recv = 0
                     # message = ""
