@@ -22,11 +22,12 @@ def create_connection(HOST, PORT, LOCAL_MACHINE, LOGGER):
         elif LOCAL_MACHINE == "server":
             general_socket.bind((HOST, int(PORT)))
             general_socket.listen(5)
+
     except socket.error as soe:
         LOGGER.info(soe)
         sys.exit(1)
     except Exception as exp:
-        LOGGER.error(exp)
+        LOGGER.unknown_error(exp)
         sys.exit(1)
     else:
         if LOCAL_MACHINE == "client":
@@ -34,6 +35,7 @@ def create_connection(HOST, PORT, LOCAL_MACHINE, LOGGER):
         elif LOCAL_MACHINE == "server":
             LOGGER.info(f"Establishing Server Connection [...]")
             LOGGER.info(f"Connection Established!")
+
         return general_socket
 
 
@@ -53,28 +55,26 @@ def recv_header(gen_socket, HEADER_SIZE, LOGGER):
                 message_length = int(request[:HEADER_SIZE])
                 incoming_message = False
             complete_header += request.decode("utf-8")
-
-            if len(complete_header) - HEADER_SIZE == message_length:
-                print(complete_header[HEADER_SIZE:])
-                incoming_message = True
-                complete_header = ""
     except socket.error as soe:
         LOGGER.info(soe)
         return False
     except Exception as exp:
-        LOGGER.error(exp)
+        LOGGER.unknown_error(exp)
         return False
     else:
         LOGGER.info(f"Header Received! [{', '.join(complete_header[HEADER_SIZE:].split())}]")
         return complete_header[HEADER_SIZE:]
 
 
-def send_header(socket, HEADER_SIZE):
+def send_header(self, general_socket):
     """"""
 
 
-def send_file(socket, file_name):
+def write_file(self, file_name, file_data_bytes):
     """"""
+
+    with open(os.path.join(self.DATA, file_name), "wb") as file:
+        file.write(file_data_bytes.encode('utf-8'))
 
 
 def recv_file(socket, file_name):

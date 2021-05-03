@@ -3,16 +3,16 @@ import socket
 import sys
 
 sys.path.append('..')
+from common.status_code import Error
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, recv_header
+from common.util import create_connection, recv_header, write_file
 
 
 class Server:
     def __init__(self):
         self.HOST = ""
         self.PORT = None
-        self.COMMAND = None
         self.FILE = None
         self.SOCKET = None
         self.LOGGER = None
@@ -37,73 +37,40 @@ class Server:
 
         HEADER_SIZE = 32
         SEPARATOR = ' ' * HEADER_SIZE
+        STATUS_CODE = None
 
         while True:
             try:
                 cli_socket, cli_address = self.SOCKET.accept()
             except socket.error:
-                self.LOGGER.info("Timed Out - No Client Connection Received - Closing Server [...]")
+                self.LOGGER.status_code(Error.FOUR)
                 sys.exit(1)
             except Exception as exp:
-                self.LOGGER.error(exp)
+                self.LOGGER.unknown_error(exp)
                 sys.exit(1)
             else:
                 connection = True
+
                 while connection:
+
                     header = recv_header(cli_socket, HEADER_SIZE, self.LOGGER)
                     if not header: break
 
-                    REQUEST_TYPE, FILE_NAME = header.split(SEPARATOR)
+                    REQUEST_TYPE, FILE_NAME, FILE_DATA_BYTES = header.split(SEPARATOR)
 
-                    with open(os.path.join(self.DATA, FILE_NAME), "wb+", 4096) as file:
-                        bytes_received = 0
-                        while True:
-                            request = cli_socket.recv(1024)
-                            if not request: break
-                            bytes_received += len(request)
-                            file.write(request)
-
-                    # file_name_bytes_recv = 0
-                    # message = ""
-                    # while file_name_bytes_recv < FILE_NAME_BYTES_SIZE:
-                    #     request = cli_socket.recv(32)
-                    #     if not request: break
-                    #     file_name_bytes_recv += len(request)
-                    #     message += request.decode('utf-8')
-
-                    if self.COMMAND == Command.PUT:
-                        pass
-                        # call recv_file
-                    elif self.COMMAND == Command.GET:
+                    if REQUEST_TYPE == Command.PUT:
+                        write_file(self, FILE_NAME, FILE_DATA_BYTES)
+                    elif REQUEST_TYPE == Command.GET:
                         pass
                         # call send_file
-                    elif self.COMMAND == Command.LIST:
+                    elif REQUEST_TYPE == Command.LIST:
                         pass
 
                     connection = False
+
                 cli_socket.close()
 
             # call send_listing
-
-            # while True:
-            #     received = True
-            #     cli_sock, cli_addr = self.SOCKET.accept()
-            #
-            #     while received:
-            #         request = cli_sock.recv(1024)
-            #
-            #         if request.decode('utf-8') == "EXIT":
-            #             received = False
-            #         else:
-            #             print(request.decode('utf-8'))
-            #
-            #             input_message = input("Please enter the message that you want to send: ")
-            #
-            #             if input_message == "EXIT":
-            #                 received = False
-            #             cli_sock.sendall(input_message.encode('utf-8'))
-            #
-            #     cli_sock.close()
 
 
 def main():
