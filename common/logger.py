@@ -10,7 +10,8 @@ class Logger:
         :param port: Given port from User
         """
 
-        self.connection = f"[{host}:{port}]"
+        self.host = host
+        self.port = port
 
     def info(self, logger_string):
         """
@@ -19,7 +20,7 @@ class Logger:
         :returns: None
         """
 
-        print(f"{self.connection} -> {logger_string}")
+        print(f"[{self.host}:{self.port}] -> {logger_string}")
 
     def status_code(self, code):
         """
@@ -28,7 +29,7 @@ class Logger:
         :returns: None
         """
 
-        print(f"{self.connection} -> {code}")
+        print(f"[{self.host}:{self.port}] -> {code}")
 
     def unknown_error(self, exception):
         """
@@ -37,4 +38,4 @@ class Logger:
         :returns: None
         """
 
-        print(f"{self.connection} -> Unknown Exception Occurred: {exception}")
+        print(f"[{self.host}:{self.port}] -> Unknown Exception Occurred: {exception}")
