@@ -20,6 +20,8 @@ class StatusCode:
         3000: "Malformed File Header: ",
         3001: "[CustomErrno 3001]: File Transfer Failure: ",
         3003: "[CustomErrno 3003]: Could Not Send Status To Client!",
+        3004: "[CustomErrno 3004]: Given File Does Not Exist On Server! Terminating Connection [...]",
+        3005: "[CustomErrno 3005]: Given File Already Exists On Server! Terminating Connection [...]",
 
         4000: "[CustomSucc 4000]: File Header Received Properly: ",
         4001: "[CustomSucc 4001]: Request Successful: "
