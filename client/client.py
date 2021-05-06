@@ -1,3 +1,4 @@
+import os
 import sys
 
 sys.path.append('..')
@@ -65,15 +66,16 @@ class Client:
 
         while connection:
             if self.request == Command.PUT:
+                file_size = os.path.getsize(os.path.join("data", self.file))
+
                 self.LOGGER.info(f"Sending Request For '{self.file}'! [...]")
-                status, status_message = send_request(self, HEADER_SIZE, SEPARATOR)
+                status, status_message = send_request(self, file_size, HEADER_SIZE, SEPARATOR)
                 if not status: break
 
                 request_status, message_overflow = recv_status_ack(self, 4000, SEPARATOR, HEADER_SIZE)
                 if not request_status: break
 
-                self.LOGGER.info(f"Transmitting '{self.file}' [...]")
-                file_data_status = transfer_file(self)
+                file_data_status = transfer_file(self, file_size)
                 if not file_data_status:
                     self.LOGGER.status_code(StatusCode.code[3001] + file_data_status)
                     break

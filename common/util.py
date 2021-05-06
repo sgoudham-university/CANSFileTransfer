@@ -13,7 +13,7 @@ def create_connection(host, port, local_machine, LOGGER):
     :param port: Port of target machine
     :param local_machine: The machine creating the connection
     :param LOGGER: Logger to log information to the given local_machine
-    :returns: None
+    :returns: general_socket
     """
 
     try:
@@ -58,7 +58,7 @@ def recv_message(general_socket, HEADER_SIZE, LOGGER, previous_overflow=""):
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
     :param LOGGER: Logger to log information to the calling machine (client/server)
     :param previous_overflow: Any previous overflow received from the previous recv() (if any)
-    :returns: complete_message, current_overflow
+    :returns: complete_message, current_overflow (If successful)
     """
 
     complete_message = ""
@@ -89,11 +89,10 @@ def recv_message(general_socket, HEADER_SIZE, LOGGER, previous_overflow=""):
         LOGGER.unknown_error(exp)
         return False, exp
     else:
-        LOGGER.info(f"Header Received! [{', '.join(complete_message.split())}]")
         return complete_message, current_overflow
 
 
-def send_request(self, HEADER_SIZE, SEPARATOR):
+def send_request(self, file_size, HEADER_SIZE, SEPARATOR):
     """
     Send the initial request to the targeted server
 
@@ -104,7 +103,6 @@ def send_request(self, HEADER_SIZE, SEPARATOR):
     """
 
     try:
-        file_size = os.path.getsize(os.path.join("data", self.file))
         message = f"{self.request}{SEPARATOR}{self.file}{SEPARATOR}{file_size}"
         header = f"{len(message):<{HEADER_SIZE}}" + message
         self.socket.sendall(header.encode('utf-8'))
@@ -198,20 +196,27 @@ def recv_status_ack(self, expected_status_code, SEPARATOR, HEADER_SIZE, previous
     return message_status, message_overflow
 
 
-def transfer_file(self):
+def transfer_file(self, file_size):
     """
     Transfer file data to the targeted machine (client/server)
 
+    :param file_size: Filesize of the target file in bytes
     :param self: Client/Server Instance
     :returns: True (if successful)
     """
 
     try:
         file_path = os.path.join("data", self.file)
+        file_bytes_sent = 0
+
         with open(file_path, 'rb') as file:
             while True:
                 message = file.read(262144)
                 if not message: break
+
+                file_bytes_sent += len(message)
+                progress_bar(self, file_bytes_sent, file_size, "Transmitting File")
+
                 self.socket.sendall(message)
     except socket.error as soe:
         self.LOGGER.info(soe)
@@ -265,7 +270,7 @@ def progress_bar(self, count, total, status):
     bar_len = 50
     filled_len = int(round(bar_len * count / float(total)))
 
-    file_size_transferred = f"{count:,}/{total:,} Bytes Received"
+    file_size_transferred = f"{count:,}/{total:,} Bytes"
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
