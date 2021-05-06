@@ -13,7 +13,6 @@ def create_connection(host, port, local_machine, LOGGER):
     :param port: Port of target machine
     :param local_machine: The machine creating the connection
     :param LOGGER: Logger to log information to the given local_machine
-
     :returns: None
     """
 
@@ -44,7 +43,7 @@ def create_connection(host, port, local_machine, LOGGER):
 
 def recv_message(general_socket, HEADER_SIZE, LOGGER, previous_overflow=""):
     """
-    Method for receiving messages from the client or the server.
+    Receive message from the client or server.
 
     --> A "Fixed-Length Header" has been implemented with support for message overflow
         --> E.g Format of Message '5                             Hello'
@@ -55,12 +54,10 @@ def recv_message(general_socket, HEADER_SIZE, LOGGER, previous_overflow=""):
         caught within a single recv(), this method ensures that any overflow is captured and returned at the end to be
         carried over to the next call of recv()
 
-
     :param general_socket: Client/Server socket
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
     :param LOGGER: Logger to log information to the calling machine (client/server)
     :param previous_overflow: Any previous overflow received from the previous recv() (if any)
-
     :returns: complete_message, current_overflow
     """
 
@@ -98,12 +95,11 @@ def recv_message(general_socket, HEADER_SIZE, LOGGER, previous_overflow=""):
 
 def send_request(self, HEADER_SIZE, SEPARATOR):
     """
-    Method for sending the initial request to the targeted server
+    Send the initial request to the targeted server
 
     :param self: Client instance
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
     :param SEPARATOR: Characters to split the request by
-
     :returns: True, True (if successful)
     """
 
@@ -130,7 +126,6 @@ def recv_request(self, general_socket, SEPARATOR, HEADER_SIZE):
     :param general_socket: Client/Server socket
     :param SEPARATOR: Characters to split the request by
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
-
     :returns: request_type, file_name, file_size (if successful)
     """
 
@@ -138,7 +133,7 @@ def recv_request(self, general_socket, SEPARATOR, HEADER_SIZE):
     request, overflow = recv_message(general_socket, HEADER_SIZE, self.LOGGER)
     if not request:
         STATUS_CODE = 3000
-        STATUS_MESSAGE = overflow   # variable 'overflow' may also contain an error message
+        STATUS_MESSAGE = overflow  # variable 'overflow' may also contain an error message
         send_status_ack(self, general_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
         return False, False, False
 
@@ -166,7 +161,6 @@ def send_status_ack(self, general_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR
     :param STATUS_MESSAGE: Detailed error information
     :param SEPARATOR: Separates the acknowledgement message
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
-
     :returns: None
     """
 
@@ -188,7 +182,6 @@ def recv_status_ack(self, expected_status_code, SEPARATOR, HEADER_SIZE, previous
     :param SEPARATOR: Separates the acknowledgement message
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
     :param previous_overflow: Any previous overflow received from the previous recv() (if any)
-
     :returns: message_status, message_overflow
     """
 
@@ -207,16 +200,14 @@ def recv_status_ack(self, expected_status_code, SEPARATOR, HEADER_SIZE, previous
 
 def transfer_file(self):
     """
-    Method for transferring file data to the targeted machine (client/server)
+    Transfer file data to the targeted machine (client/server)
 
     :param self: Client/Server Instance
-
     :returns: True (if successful)
     """
 
     try:
         file_path = os.path.join("data", self.file)
-
         with open(file_path, 'rb') as file:
             while True:
                 message = file.read(262144)
@@ -240,7 +231,6 @@ def read_file(self, general_socket, file_name, file_size):
     :param general_socket: Client/Server socket
     :param file_name: Filename to read
     :param file_size: Size of the file to read
-
     :returns: True, True (if successful)
     """
 
@@ -252,6 +242,7 @@ def read_file(self, general_socket, file_name, file_size):
                 if not file_data: break
                 file.write(file_data)
                 recv_bytes += len(file_data)
+                progress_bar(self, recv_bytes, file_size, "Reading File")
     except socket.error as soe:
         self.LOGGER.info(soe)
         return False, soe
@@ -268,6 +259,20 @@ def send_listing(socket):
 
 def recv_listing(socket):
     """"""
+
+
+def progress_bar(self, count, total, status):
+    bar_len = 50
+    filled_len = int(round(bar_len * count / float(total)))
+
+    file_size_transferred = f"{count:,}/{total:,} Bytes Received"
+    percents = round(100.0 * count / float(total), 1)
+    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+    sys.stdout.write(f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{bar}| {file_size_transferred} | {percents}% ...{status}\r")
+    sys.stdout.flush()
+
+    if count >= total: print()
 
 
 def isFilePresent(file):
