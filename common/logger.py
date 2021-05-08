@@ -6,6 +6,7 @@ class Logger:
     def __init__(self, host, port):
         """
         Constructor for Logger
+
         :param host: Given host from User
         :param port: Given port from User
         """
@@ -16,6 +17,7 @@ class Logger:
     def info(self, logger_string):
         """
         Print out to the console
+
         :param logger_string: Specifies string to print out to console
         :returns: None
         """
@@ -25,6 +27,7 @@ class Logger:
     def status_code(self, code):
         """
         Print out to the console with given custom error code/description
+
         :param code: Custom error code with description
         :returns: None
         """
@@ -34,6 +37,7 @@ class Logger:
     def unknown_error(self, exception):
         """
         Print out unknown exception to the console
+
         :param exception: Type of exception that occurred
         :returns: None
         """
