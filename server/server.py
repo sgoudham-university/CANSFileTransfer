@@ -6,7 +6,7 @@ sys.path.append('..')
 from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, read_file, isFilePresent, send_status_ack, recv_request, recv_status_ack
+from common.util import create_connection, read_file, isFilePresent, send_status_ack, recv_message, recv_status_ack
 
 
 class Server:
@@ -85,7 +85,7 @@ class Server:
 
                 while connection:
                     # Receive initial request type from client
-                    request_type = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
+                    request_type = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
                     if not request_type: break
                     self.request = request_type
 
@@ -99,7 +99,7 @@ class Server:
                         if not client_file_status: break
 
                         # Receive file_name & file_size.
-                        file_information = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
+                        file_information = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
                         if not request_type: break
 
                         # Split variables. If malformed file information, terminate connection
@@ -138,6 +138,8 @@ class Server:
                             STATUS_MESSAGE = status_message
                         else:
                             STATUS_CODE = 4002
+                            STATUS_MESSAGE = f"[{request_type}, {file_name}]"
+                        self.LOGGER.status_code(StatusCode.code[STATUS_CODE] + STATUS_MESSAGE)
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     elif request_type == Command.GET:

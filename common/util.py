@@ -7,7 +7,7 @@ from common.status_code import StatusCode
 
 def create_connection(host, port, local_machine, LOGGER):
     """
-    Instantiates a connection for the given machine (client/server)
+    Instantiates a connection for the given machine (Client/Server)
 
     :param host: Host of target machine
     :param port: Port of target machine
@@ -41,19 +41,19 @@ def create_connection(host, port, local_machine, LOGGER):
         return general_socket
 
 
-def recv_message(general_socket, HEADER_SIZE, LOGGER):
+def recv_raw_message(general_socket, HEADER_SIZE, LOGGER):
     """
-    Receive message from the client or server.
+    Receive one message from Client/Server (without status message error handling)
 
-    A "Fixed-Length Header" has been implemented with support for message overflow
+    A "Fixed-Length Header" has been implemented to differentiate between messages sent
     E.g Format of Message '5                             Hello'
     '5' is the length of the actual message to be retrieved
     'Hello' is the content of the actual message (5 bytes)
 
     :param general_socket: Client/Server socket
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
-    :param LOGGER: Logger to log information to the calling machine (client/server)
-    :returns: complete_message, current_overflow (If successful)
+    :param LOGGER: Logger to log information to the calling machine (Client/Server)
+    :returns: complete_message, True (If successful)
     """
 
     complete_message = ""
@@ -83,9 +83,9 @@ def recv_message(general_socket, HEADER_SIZE, LOGGER):
         return complete_message, True
 
 
-def send_request(self, general_socket, message, HEADER_SIZE):
+def send_message(self, general_socket, message, HEADER_SIZE):
     """
-    Send messages to the targeted Client/Server
+    Send message to the targeted Client/Server
 
     :param general_socket: Client/Server socket
     :param message: Actual message to send to Client/Server
@@ -107,31 +107,31 @@ def send_request(self, general_socket, message, HEADER_SIZE):
         return True, True
 
 
-def recv_request(self, general_socket, SEPARATOR, HEADER_SIZE):
+def recv_message(self, general_socket, SEPARATOR, HEADER_SIZE):
     """
-    Receive the initial request from the client
+    Receive message from Client/Server.
+    This implements functionality for sending status_ack back to the Client or Server should something go wrong
 
     :param self: Server Instance
     :param general_socket: Client/Server socket
     :param SEPARATOR: Characters to split the request by
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
-    :returns: request_type, file_name, file_size (if successful)
+    :returns: request (if successful)
     """
 
-    # Receive initial request, terminate connection if data malformed
-    request, status_msg = recv_message(general_socket, HEADER_SIZE, self.LOGGER)
+    request, status_msg = recv_raw_message(general_socket, HEADER_SIZE, self.LOGGER)
     if not request:
         STATUS_CODE = 3000
         STATUS_MESSAGE = status_msg
         send_status_ack(self, general_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-        return False, False
+        return False
 
     return request
 
 
 def send_status_ack(self, general_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE):
     """
-    Sends a status acknowledgement message to the target machine (client/server)
+    Send a status acknowledgement message to the target machine (client/server)
 
     :param self: Client/Server Instance
     :param general_socket: Client/Server socket
@@ -153,7 +153,7 @@ def send_status_ack(self, general_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR
 
 def recv_status_ack(self, general_socket, expected_status_code, SEPARATOR, HEADER_SIZE):
     """
-    Receives a status acknowledgement message from the target machine (client/server)
+    Receive a status acknowledgement message from the target machine (client/server)
 
     :param general_socket: Client/Server socket
     :param expected_status_code: Status code to check against for logging
@@ -163,7 +163,7 @@ def recv_status_ack(self, general_socket, expected_status_code, SEPARATOR, HEADE
     :returns: complete_status_message
     """
 
-    complete_status_message, complete_status_message_status = recv_message(general_socket, HEADER_SIZE, self.LOGGER)
+    complete_status_message, complete_status_message_status = recv_raw_message(general_socket, HEADER_SIZE, self.LOGGER)
     if not complete_status_message: return False
 
     status_code, status_message = complete_status_message.split(SEPARATOR)
@@ -196,7 +196,7 @@ def transfer_file(self, general_socket, file_path, file_size):
                 if not message: break
 
                 file_bytes_sent += len(message)
-                progress_bar(self, file_bytes_sent, file_size, "Transmitting File")
+                progress_bar(self, file_bytes_sent, file_size, "Sending File")
 
                 general_socket.sendall(message)
     except socket.error as soe:
@@ -211,7 +211,7 @@ def transfer_file(self, general_socket, file_path, file_size):
 
 def read_file(self, general_socket, file_name, file_size):
     """
-    Method for reading the file data that is being transmitted by the target machine (client/server)
+   Read file data that is being transmitted by the target machine (client/server)
 
     :param self: Client/Server Instance
     :param general_socket: Client/Server socket
@@ -250,6 +250,16 @@ def recv_listing(socket):
 
 
 def progress_bar(self, count, total, status):
+    """
+    Shows visual progress of the file transfer in progress (sending and receiving)
+
+    :param self:
+    :param count:
+    :param total:
+    :param status:
+    :returns: None
+    """
+
     bar_len = 50
     filled_len = int(round(bar_len * count / float(total)))
 
@@ -257,7 +267,7 @@ def progress_bar(self, count, total, status):
     transfer_percent = round(100.0 * count / float(total), 2)
     bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
-    sys.stdout.write(f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{bar}| {file_size_bytes} | {transfer_percent}% ...{status}\r")
+    sys.stdout.write(f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
     sys.stdout.flush()
 
     if count >= total: print()

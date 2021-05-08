@@ -5,7 +5,7 @@ sys.path.append('..')
 from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, transfer_file, send_request, recv_status_ack, isFilePresent, send_status_ack
+from common.util import create_connection, transfer_file, send_message, recv_status_ack, isFilePresent, send_status_ack
 
 
 class Client:
@@ -71,7 +71,7 @@ class Client:
 
             # Send Server request information
             self.LOGGER.info(f"Sending Request For '{self.file}' To Specified Server! [...]")
-            status, status_message = send_request(self, self.socket, self.request, HEADER_SIZE)
+            status, status_message = send_message(self, self.socket, self.request, HEADER_SIZE)
             if not status: break
 
             # Receive acknowledgement for request type. If not successful, terminate connection
@@ -95,7 +95,7 @@ class Client:
                 # Send file information (file_size and file_name) to Server
                 self.LOGGER.info(f"Sending File Information For '{self.file}' To Specified Server! [...]")
                 message = f"{self.file}{SEPARATOR}{file_size}"
-                status, status_message = send_request(self, self.socket, message, HEADER_SIZE)
+                status, status_message = send_message(self, self.socket, message, HEADER_SIZE)
                 if not status: break
 
                 # Receive acknowledgement for file information (filename and size)
