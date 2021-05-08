@@ -30,7 +30,7 @@ class StatusCode:
         4000: "[SUCCESS 4000]: Request Type Received Properly: ",
         4001: "[SUCCESS 4001]: File Information Sent Successfully: ",
         4002: "[SUCCESS 4002]: Request Successful: ",
-        4003: "[SUCCESS 4003]: Request + File Are Valid: ",
+        4003: "[SUCCESS 4003]: Ready For File Transfer: ",
         4004: "[SUCCESS 4004]: Client Ready To Receive File",
         4005: "[SUCCESS 4005]: Client File Exists: "
     }
