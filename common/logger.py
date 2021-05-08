@@ -20,7 +20,7 @@ class Logger:
         :returns: None
         """
 
-        print(f"[{self.host}:{self.port}] -> {logger_string}")
+        print(f"[{self.host}:{self.port}] -> [INFO] {logger_string}")
 
     def status_code(self, code):
         """
