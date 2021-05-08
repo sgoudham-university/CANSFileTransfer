@@ -84,6 +84,7 @@ class Server:
                 connection = True
 
                 while connection:
+                    # Receive initial request type from client
                     request_type = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
                     if not request_type: break
                     self.request = request_type
@@ -101,7 +102,7 @@ class Server:
                         file_information = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
                         if not request_type: break
 
-                        # Receive file_name & file_size. Terminate connection if malformed request_header
+                        # Split variables. If malformed file information, terminate connection
                         try:
                             file_name, file_size = file_information.split(SEPARATOR)
                             file_size = int(file_size)
@@ -116,7 +117,7 @@ class Server:
                         STATUS_CODE = 4001
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
-                        # Check if file already exists, terminate connection if file exists on server
+                        # Check if file already exists. If file already exists, terminate connection
                         file_path = os.path.join("data", file_name)
                         if isFilePresent(file_path):
                             self.LOGGER.status_code(StatusCode.code[3005])
@@ -124,11 +125,11 @@ class Server:
                             send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                             break
 
-                        # Send acknowledgement back to client that request and file are now both valid
+                        # Send acknowledgement back to client that the full request is now valid
                         STATUS_CODE = 4003
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
-                        # Receive file_data and write into file
+                        # Receive file_data and write into local file
                         status, status_message = read_file(self, cli_socket, file_name, file_size)
 
                         # Send acknowledgement back to client if put request was successful or not
