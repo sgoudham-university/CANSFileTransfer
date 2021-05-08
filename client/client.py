@@ -74,7 +74,7 @@ class Client:
             status, status_message = send_request(self, self.socket, self.request, HEADER_SIZE)
             if not status: break
 
-            # Receive acknowledgement for request type, terminate connection if not successful
+            # Receive acknowledgement for request type. If not successful, terminate connection
             request_status = recv_status_ack(self, self.socket, 4000, SEPARATOR, HEADER_SIZE)
             if not request_status: break
 
@@ -92,7 +92,7 @@ class Client:
 
                 file_size = os.path.getsize(os.path.join("data", self.file))
 
-                # Send file information to Server
+                # Send file information (file_size and file_name) to Server
                 self.LOGGER.info(f"Sending File Information For '{self.file}' To Specified Server! [...]")
                 message = f"{self.file}{SEPARATOR}{file_size}"
                 status, status_message = send_request(self, self.socket, message, HEADER_SIZE)
