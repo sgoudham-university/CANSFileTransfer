@@ -1,3 +1,4 @@
+import json
 import os
 import socket
 import sys
@@ -177,9 +178,9 @@ def recv_status_ack(self, general_socket, expected_status_code, SEPARATOR, HEADE
     return complete_status_message
 
 
-def transfer_file(self, general_socket, file_path, file_size):
+def send_file(self, general_socket, file_path, file_size):
     """
-    Transfer file data to the targeted machine (client/server)
+    Send file data to the targeted machine (client/server)
 
     :param general_socket: Client/Server socket
     :param file_path: Path to the file on the machine
@@ -241,12 +242,53 @@ def read_file(self, general_socket, file_name, file_size):
         return True, True
 
 
-def send_listing(socket):
-    """"""
+def send_listing(self, general_socket, listing_dict):
+    """
+    Send a directory listing to the target machine (Client/Server
+
+    :param self: Client/Server instance
+    :param general_socket: Client/Server socket
+    :param listing_dict: The contents of the directory in a dict (item_name: item_type)
+    :returns: True, True (If successful)
+    """
+
+    try:
+        general_socket.sendall(json.dumps(listing_dict).encode('utf-8'))
+    except socket.error as soe:
+        self.LOGGER.info(soe)
+        return False, soe
+    except Exception as exp:
+        self.LOGGER.unknown_error(exp)
+        return False, exp
+    else:
+        return True, True
 
 
-def recv_listing(socket):
+def recv_listing(self, general_socket, dir_size):
     """"""
+
+    dir_listing_bytes = b''
+    recv_bytes = 0
+
+    try:
+        while recv_bytes < dir_size:
+            dir_data = general_socket.recv(262144)
+            if not dir_data: break
+
+            recv_bytes += len(dir_data)
+            progress_bar(self, recv_bytes, dir_size, "Reading Directory")
+
+            dir_listing_bytes += dir_data
+
+        dir_listing_dict = json.loads(dir_listing_bytes)
+    except socket.error as soe:
+        self.LOGGER.info(soe)
+        return False, soe
+    except Exception as exp:
+        self.LOGGER.unknown_error(exp)
+        return False, exp
+    else:
+        return dir_listing_dict, True
 
 
 def progress_bar(self, count, total, status):
@@ -267,7 +309,8 @@ def progress_bar(self, count, total, status):
     transfer_percent = round(100.0 * count / float(total), 2)
     file_bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
-    sys.stdout.write(f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{file_bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
+    sys.stdout.write(
+        f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{file_bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
     sys.stdout.flush()
 
     if count >= total: print()
@@ -292,12 +335,16 @@ def get_dir(root_dir):
     :returns: dir_dict
     """
 
-    all_items_count = len([item for item in os.scandir(root_dir)])
-    dir_string = ""
-    file_count = 0
+    dir_dict = {}
 
     for item in os.scandir(root_dir):
-        dir_string += (item.name if file_count == all_items_count - 1 else item.name + "\n")
-        file_count += 1
+        item_type = ""
 
-    return dir_string
+        if item.is_file():
+            item_type = "[FILE]"
+        elif item.is_dir():
+            item_type = "[DIR]"
+
+        dir_dict[item.name] = item_type
+
+    return dir_dict

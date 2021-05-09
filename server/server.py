@@ -1,3 +1,4 @@
+import json
 import os
 import socket
 import sys
@@ -7,7 +8,7 @@ from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
 from common.util import create_connection, read_file, is_file_present, send_status_ack, recv_message, recv_status_ack, \
-    get_dir, send_message
+    get_dir, send_message, send_listing
 
 
 class Server:
@@ -199,24 +200,22 @@ class Server:
                         #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     elif request_type == Command.LIST:
-                        server_dir = get_dir(os.path.join("data"))
+                        server_listing_dict = get_dir(os.path.join("data"))
 
-                        # Send acknowledgement to Client that it's ready to send directory
-
-                        # Send Server directory information to Client
+                        # Send directory information to Client (amount of bytes to receive)
                         self.LOGGER.info(f"Sending Directory Information To Client! [...]")
-                        status, status_message = send_message(self, cli_socket, server_dir, HEADER_SIZE)
+                        message = str(len(json.dumps(server_listing_dict).encode('utf-8')))
+                        status, status_message = send_message(self, cli_socket, message, HEADER_SIZE)
                         if not status: break
 
-                        # Send acknowledgement back to client if list request was successful or not
-                        if not status:
-                            STATUS_CODE = 3002
-                            STATUS_MESSAGE = status_message
-                        else:
-                            STATUS_CODE = 4002
-                            STATUS_MESSAGE = f"[{request_type}]"
-                        self.LOGGER.status_code(StatusCode.code[STATUS_CODE] + STATUS_MESSAGE)
-                        send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+                        # If Client did not get Server Directory information, terminate connection
+                        server_listing_size_status = recv_status_ack(self, cli_socket, 4006, SEPARATOR, HEADER_SIZE)
+                        if not server_listing_size_status: break
+
+                        # Transfer server listing data to Client
+                        status, status_message = send_listing(self, cli_socket, server_listing_dict)
+
+                        # Receive acknowledgement from Client if list request was successful or not
 
                     connection = False
                 cli_socket.close()

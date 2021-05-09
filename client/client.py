@@ -5,8 +5,8 @@ sys.path.append('..')
 from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, transfer_file, send_message, recv_status_ack, is_file_present, \
-    send_status_ack, recv_message
+from common.util import create_connection, send_file, send_message, recv_status_ack, is_file_present, \
+    send_status_ack, recv_message, recv_listing
 
 
 class Client:
@@ -108,12 +108,12 @@ class Client:
                 if not transfer_file_status: break
 
                 # Transfer file through buffering
-                file_data_status, file_data_status_msg = transfer_file(self, self.socket, file_path, file_size)
+                file_data_status, file_data_status_msg = send_file(self, self.socket, file_path, file_size)
                 if not file_data_status:
                     self.LOGGER.status_code(StatusCode.code[3001] + file_data_status_msg)
                     break
 
-                # Receive acknowledgement from server about total request success
+                # Receive acknowledgement from server about put request success
                 put_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
                 if not put_request_status: break
 
@@ -143,20 +143,24 @@ class Client:
                 # if not get_request_status: break
 
             elif self.request == Command.LIST:
-                # Receive acknowledgement from Server. If Server is not ready, then terminate connection
+                # Retrieve Server directory information (size of server_dir)
+                self.LOGGER.info(f"Retrieving Server Directory Information! [...]")
+                server_dir_size = recv_message(self, self.socket, SEPARATOR, HEADER_SIZE)
+                if not server_dir_size: break
 
-                # Retrieve server directory information from Server
-                self.LOGGER.info(f"Retrieving Server Directory! [...]")
-                server_dir = recv_message(self, self.socket, SEPARATOR, HEADER_SIZE)
-                print(server_dir)
-                if not server_dir: break
+                # Send acknowledgement that Server directory size was received successfully
+                STATUS_CODE = 4006
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
+                # Receive server listing
+                dir_listing_dict, status_message = recv_listing(self, self.socket, int(server_dir_size))
+                if not dir_listing_dict: break
+
+                # Display Server directory
                 self.LOGGER.info("Current Server Directory:")
-                self.LOGGER.print_dir(server_dir)
+                self.LOGGER.print_dir(dir_listing_dict)
 
-                # Receive acknowledgement from server about list request success
-                list_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
-                if not list_request_status: break
+                # Send acknowledgement that list request was successful
             else:
                 self.LOGGER.status_code(StatusCode.code[1001])
                 sys.exit(1)
