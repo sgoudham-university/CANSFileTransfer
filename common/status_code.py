@@ -21,6 +21,7 @@ class StatusCode:
 
         3000: "Malformed Request Message: ",
         3001: "[ERROR 3001]: File Transfer Failure: ",
+        3002: "[ERROR 3002]: Directory Transfer Failure: ",
         3003: "[ERROR 3003]: Could Not Send Status To Client!",
         3004: "[ERROR 3004]: Given File Does Not Exist On Server! Terminating Connection [...]",
         3005: "[ERROR 3005]: Given File Already Exists On Server! Terminating Connection [...]",
