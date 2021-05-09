@@ -24,17 +24,17 @@ class Logger:
 
         print(f"[{self.host}:{self.port}] -> [INFO] {logger_string}")
 
-    def print_dir(self, dir_string):
+    def print_dir(self, dir_dict):
         """
-        Print out the contents of the provided directory string
+        Print out the contents of the provided directory dictionary
 
-        :param dir_string: Directory string that has items of a directory split by "\n"
+        :param dir_dict: Dictionary that has the following key:value pairs - {item_name: item_type}
         :returns None
         """
 
-        server_dir_list = dir_string.split("\n")
-        for item in server_dir_list:
-            print(f"[{self.host}:{self.port}] -> [ITEM] ---> {item}")
+        for item_name, item_type in dir_dict.items():
+            spaces = 2 if item_type == "[DIR]" else 1
+            print(f"[{self.host}:{self.port}] -> {item_type}{' ':>{spaces}}---> {item_name}")
 
     def status_code(self, code):
         """
