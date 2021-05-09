@@ -24,6 +24,18 @@ class Logger:
 
         print(f"[{self.host}:{self.port}] -> [INFO] {logger_string}")
 
+    def print_dir(self, dir_string):
+        """
+        Print out the contents of the provided directory string
+
+        :param dir_string: Directory string that has items of a directory split by "\n"
+        :returns None
+        """
+
+        server_dir_list = dir_string.split("\n")
+        for item in server_dir_list:
+            print(f"[{self.host}:{self.port}] -> [ITEM] ---> {item}")
+
     def status_code(self, code):
         """
         Print out to the console with given custom error code/description
