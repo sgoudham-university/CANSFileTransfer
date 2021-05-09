@@ -33,5 +33,6 @@ class StatusCode:
         4002: "[SUCCESS 4002]: Request Successful: ",
         4003: "[SUCCESS 4003]: Ready For File Transfer: ",
         4004: "[SUCCESS 4004]: Client Ready To Receive File",
-        4005: "[SUCCESS 4005]: Client File Exists: "
+        4005: "[SUCCESS 4005]: Client File Exists: ",
+        4006: "[SUCCESS 4006]: Server Directory Size Received Successfully: ",
     }
