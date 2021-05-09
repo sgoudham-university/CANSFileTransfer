@@ -35,8 +35,8 @@ def create_connection(host, port, local_machine, LOGGER):
         if local_machine == "client":
             LOGGER.info(f"Successfully Connected to [{host}:{port}]")
         elif local_machine == "server":
-            LOGGER.info(f"Booting Server [...]")
-            LOGGER.info(f"Server Online!")
+            LOGGER.info("Booting Server [...]")
+            LOGGER.info("Server Online!")
 
         return general_socket
 
@@ -170,9 +170,9 @@ def recv_status_ack(self, general_socket, expected_status_code, SEPARATOR, HEADE
     if int(status_code) != expected_status_code:
         self.LOGGER.status_code(StatusCode.code[int(status_code)] + status_message)
         return False
-    else:
-        message = f"[{self.request}, {self.file}]" if self.file else f"[{self.request}]"
-        self.LOGGER.status_code(StatusCode.code[int(status_code)] + message)
+
+    message = f"[{self.request}, {self.file}]" if self.file else f"[{self.request}]"
+    self.LOGGER.status_code(StatusCode.code[int(status_code)] + message)
 
     return complete_status_message
 
@@ -265,15 +265,15 @@ def progress_bar(self, count, total, status):
 
     file_size_bytes = f"{count:,}/{total:,} Bytes"
     transfer_percent = round(100.0 * count / float(total), 2)
-    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+    file_bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
-    sys.stdout.write(f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
+    sys.stdout.write(f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{file_bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
     sys.stdout.flush()
 
     if count >= total: print()
 
 
-def isFilePresent(file):
+def is_file_present(file):
     """
     Determine if given file is present on the machine
 
@@ -284,6 +284,20 @@ def isFilePresent(file):
     return os.path.isfile(file)
 
 
-def list_dirs(root_dir):
+def get_dir(root_dir):
+    """
+    Return a dictionary containing all the items of a given root directory
+
+    :param root_dir: The directory in which to search for files
+    :returns: dir_dict
+    """
+
+    all_items_count = len([item for item in os.scandir(root_dir)])
+    dir_string = ""
+    file_count = 0
+
     for item in os.scandir(root_dir):
-        print(item.name)
+        dir_string += (item.name if file_count == all_items_count - 1 else item.name + "\n")
+        file_count += 1
+
+    return dir_string

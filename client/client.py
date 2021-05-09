@@ -5,7 +5,8 @@ sys.path.append('..')
 from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, transfer_file, send_message, recv_status_ack, isFilePresent, send_status_ack
+from common.util import create_connection, transfer_file, send_message, recv_status_ack, is_file_present, \
+    send_status_ack, recv_message
 
 
 class Client:
@@ -67,10 +68,9 @@ class Client:
         while connection:
             STATUS_CODE = 4002
             STATUS_MESSAGE = ""
-            file_path = os.path.join("data", self.file)
 
             # Send Server request information
-            self.LOGGER.info(f"Sending Request For '{self.file}' To Specified Server! [...]")
+            self.LOGGER.info(f"Sending '{self.request}' Info To Specified Server! [...]")
             status, status_message = send_message(self, self.socket, self.request, HEADER_SIZE)
             if not status: break
 
@@ -79,8 +79,9 @@ class Client:
             if not request_status: break
 
             if self.request == Command.PUT:
+                file_path = os.path.join("data", self.file)
                 # Check if file doesn't exist within client. If file doesn't exist, terminate connection
-                if not isFilePresent(file_path):
+                if not is_file_present(file_path):
                     self.LOGGER.status_code(StatusCode.code[3006])
                     STATUS_CODE = 3006
                     send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
@@ -117,13 +118,13 @@ class Client:
                 if not put_request_status: break
 
             elif self.request == Command.GET:
-                pass
-                # # Check if file already exists within client. If file does exist, terminate connection
-                # if isFilePresent(file_path):
-                #     self.LOGGER.status_code(StatusCode.code[3007])
-                #     STATUS_CODE = 3007
-                #     send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                #     break
+                file_path = os.path.join("data", self.file)
+                # Check if file already exists within client. If file does exist, terminate connection
+                if is_file_present(file_path):
+                    self.LOGGER.status_code(StatusCode.code[3007])
+                    STATUS_CODE = 3007
+                    send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+                    break
                 #
                 # # Send acknowledgement to Server that client is ready to receive file
                 # STATUS_CODE = 4004
@@ -142,8 +143,20 @@ class Client:
                 # if not get_request_status: break
 
             elif self.request == Command.LIST:
-                pass
-                # call recv_listing
+                # Receive acknowledgement from Server. If Server is not ready, then terminate connection
+
+                # Retrieve server directory information from Server
+                self.LOGGER.info(f"Retrieving Server Directory! [...]")
+                server_dir = recv_message(self, self.socket, SEPARATOR, HEADER_SIZE)
+                print(server_dir)
+                if not server_dir: break
+
+                self.LOGGER.info("Current Server Directory:")
+                self.LOGGER.print_dir(server_dir)
+
+                # Receive acknowledgement from server about list request success
+                list_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
+                if not list_request_status: break
             else:
                 self.LOGGER.status_code(StatusCode.code[1001])
                 sys.exit(1)

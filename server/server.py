@@ -6,7 +6,8 @@ sys.path.append('..')
 from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
-from common.util import create_connection, read_file, isFilePresent, send_status_ack, recv_message, recv_status_ack
+from common.util import create_connection, read_file, is_file_present, send_status_ack, recv_message, recv_status_ack, \
+    get_dir, send_message
 
 
 class Server:
@@ -119,7 +120,7 @@ class Server:
 
                         # Check if file already exists. If file already exists, terminate connection
                         file_path = os.path.join("data", file_name)
-                        if isFilePresent(file_path):
+                        if is_file_present(file_path):
                             self.LOGGER.status_code(StatusCode.code[3005])
                             STATUS_CODE = 3005
                             send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
@@ -144,9 +145,9 @@ class Server:
 
                     elif request_type == Command.GET:
                         pass
-                        # # If client has file locally, terminate connection
-                        # client_file_status = recv_status_ack(self, cli_socket, 4001, SEPARATOR, HEADER_SIZE)
-                        # if not client_file_status: break
+                        # If client has file locally, terminate connection
+                        client_file_status = recv_status_ack(self, cli_socket, 4001, SEPARATOR, HEADER_SIZE)
+                        if not client_file_status: break
                         #
                         # file_information = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
                         # if not request_type: break
@@ -198,7 +199,24 @@ class Server:
                         #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     elif request_type == Command.LIST:
-                        pass
+                        server_dir = get_dir(os.path.join("data"))
+
+                        # Send acknowledgement to Client that it's ready to send directory
+
+                        # Send Server directory information to Client
+                        self.LOGGER.info(f"Sending Directory Information To Client! [...]")
+                        status, status_message = send_message(self, cli_socket, server_dir, HEADER_SIZE)
+                        if not status: break
+
+                        # Send acknowledgement back to client if list request was successful or not
+                        if not status:
+                            STATUS_CODE = 3002
+                            STATUS_MESSAGE = status_message
+                        else:
+                            STATUS_CODE = 4002
+                            STATUS_MESSAGE = f"[{request_type}]"
+                        self.LOGGER.status_code(StatusCode.code[STATUS_CODE] + STATUS_MESSAGE)
+                        send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     connection = False
                 cli_socket.close()
