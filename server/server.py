@@ -97,16 +97,16 @@ class Server:
 
                     if request_type == Command.PUT:
                         # If client does not have file locally, terminate connection
-                        client_file_status = recv_status_ack(self, cli_socket, 4005, SEPARATOR, HEADER_SIZE)
-                        if not client_file_status: break
+                        list_request_status = recv_status_ack(self, cli_socket, 4005, SEPARATOR, HEADER_SIZE)
+                        if not list_request_status: break
 
                         # Receive file_name & file_size.
-                        file_information = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
+                        list_REQUEST = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
                         if not request_type: break
 
                         # Split variables. If malformed file information, terminate connection
                         try:
-                            file_name, file_size = file_information.split(SEPARATOR)
+                            file_name, file_size = list_REQUEST.split(SEPARATOR)
                             file_size = int(file_size)
                         except ValueError as vle:
                             self.LOGGER.status_code(StatusCode.code[3000] + vle)
@@ -147,8 +147,8 @@ class Server:
                     elif request_type == Command.GET:
                         pass
                         # If client has file locally, terminate connection
-                        client_file_status = recv_status_ack(self, cli_socket, 4001, SEPARATOR, HEADER_SIZE)
-                        if not client_file_status: break
+                        list_request_status = recv_status_ack(self, cli_socket, 4001, SEPARATOR, HEADER_SIZE)
+                        if not list_request_status: break
                         #
                         # file_information = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
                         # if not request_type: break
@@ -214,8 +214,11 @@ class Server:
 
                         # Transfer server listing data to Client
                         status, status_message = send_listing(self, cli_socket, server_listing_dict)
+                        if not status: break
 
                         # Receive acknowledgement from Client if list request was successful or not
+                        list_request_status = recv_status_ack(self, cli_socket, 4002, SEPARATOR, HEADER_SIZE)
+                        if not list_request_status: break
 
                     connection = False
                 cli_socket.close()

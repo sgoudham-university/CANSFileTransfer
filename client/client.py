@@ -154,16 +154,21 @@ class Client:
 
                 # Receive server listing
                 dir_listing_dict, status_message = recv_listing(self, self.socket, int(server_dir_size))
-                if not dir_listing_dict: break
+                if not dir_listing_dict:
+                    STATUS_CODE = 3002
+                    STATUS_MESSAGE = status_message
+                    send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+                    break
 
                 # Display Server directory
                 self.LOGGER.info("Current Server Directory:")
                 self.LOGGER.print_dir(dir_listing_dict)
 
                 # Send acknowledgement that list request was successful
-            else:
-                self.LOGGER.status_code(StatusCode.code[1001])
-                sys.exit(1)
+                STATUS_CODE = 4002
+                STATUS_MESSAGE = f"[{self.request}]"
+                self.LOGGER.status_code(StatusCode.code[STATUS_CODE] + STATUS_MESSAGE)
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
             connection = False
         self.socket.close()
