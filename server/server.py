@@ -212,7 +212,7 @@ class Server:
                         server_listing_size_status = recv_status_ack(self, cli_socket, 4006, SEPARATOR, HEADER_SIZE)
                         if not server_listing_size_status: break
 
-                        # Transfer server listing data to Client
+                        # Transfer Server listing data to Client
                         status, status_message = send_listing(self, cli_socket, server_listing_dict)
                         if not status: break
 
