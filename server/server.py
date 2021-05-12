@@ -16,8 +16,6 @@ class Server:
     Class Representing a Server
 
     --> This server will constantly listen for any incoming client connections on the given port.
-    --> A timeout of 100 seconds has been implemented to ensure that the server does not endlessly listen and waste
-        system resources.
 
     --> Included functionality includes:
         -> PUT: Receive file from client and write to local directory
@@ -91,7 +89,7 @@ class Server:
                     if not request_type: break
                     self.request = request_type
 
-                    # Send acknowledgement back to client that request_type was received successfully
+                    # Send status acknowledgement that request_type was received successfully
                     STATUS_CODE = 4000
                     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
@@ -100,13 +98,17 @@ class Server:
                         list_request_status = recv_status_ack(self, cli_socket, 4005, SEPARATOR, HEADER_SIZE)
                         if not list_request_status: break
 
+                        # Send status acknowledgement that Server is ready to receive file information
+                        STATUS_CODE = 4008
+                        send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
                         # Receive file_name & file_size.
-                        list_REQUEST = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
+                        file_information = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
                         if not request_type: break
 
                         # Split variables. If malformed file information, terminate connection
                         try:
-                            file_name, file_size = list_REQUEST.split(SEPARATOR)
+                            file_name, file_size = file_information.split(SEPARATOR)
                             file_size = int(file_size)
                         except ValueError as vle:
                             self.LOGGER.status_code(StatusCode.code[3000] + vle)
@@ -114,10 +116,6 @@ class Server:
                             STATUS_MESSAGE = vle
                             send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                             break
-
-                        # Send acknowledgement back to client that filename and filesize was received successfully
-                        STATUS_CODE = 4001
-                        send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                         # Check if file already exists. If file already exists, terminate connection
                         file_path = os.path.join("data", file_name)
@@ -127,14 +125,14 @@ class Server:
                             send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                             break
 
-                        # Send acknowledgement back to client that the full request is now valid
+                        # Send status acknowledgement that the put request is now valid
                         STATUS_CODE = 4003
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                         # Receive file_data and write into local file
                         status, status_message = read_file(self, cli_socket, file_name, file_size)
 
-                        # Send acknowledgement back to client if put request was successful or not
+                        # Send status acknowledgement if put request was successful or not
                         if not status:
                             STATUS_CODE = 3001
                             STATUS_MESSAGE = status_message
@@ -200,6 +198,10 @@ class Server:
                         #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     elif request_type == Command.LIST:
+                        # If Client is not ready to receive Server directory size, terminate connection
+                        client_status = recv_status_ack(self, cli_socket, 4007, SEPARATOR, HEADER_SIZE)
+                        if not client_status: break
+
                         server_listing_dict = get_dir(os.path.join("data"))
 
                         # Send directory information to Client (amount of bytes to receive)
@@ -212,7 +214,7 @@ class Server:
                         server_listing_size_status = recv_status_ack(self, cli_socket, 4006, SEPARATOR, HEADER_SIZE)
                         if not server_listing_size_status: break
 
-                        # Transfer Server listing data to Client
+                        # Send Server listing to Client
                         status, status_message = send_listing(self, cli_socket, server_listing_dict)
                         if not status: break
 

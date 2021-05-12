@@ -70,7 +70,7 @@ class Client:
             STATUS_MESSAGE = ""
 
             # Send Server request information
-            self.LOGGER.info(f"Sending '{self.request}' Info To Specified Server! [...]")
+            self.LOGGER.info(f"Sending Request '{self.request}' To Specified Server! [...]")
             status, status_message = send_message(self, self.socket, self.request, HEADER_SIZE)
             if not status: break
 
@@ -80,6 +80,7 @@ class Client:
 
             if self.request == Command.PUT:
                 file_path = os.path.join("data", self.file)
+
                 # Check if file doesn't exist within client. If file doesn't exist, terminate connection
                 if not is_file_present(file_path):
                     self.LOGGER.status_code(StatusCode.code[3006])
@@ -87,9 +88,13 @@ class Client:
                     send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                     break
 
-                # Send acknowledgement to Server that file exists locally
+                # Send status acknowledgement that file exists locally
                 STATUS_CODE = 4005
                 send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
+                # Receive status acknowledgement that Server is ready to receive file information
+                server_status = recv_status_ack(self, self.socket, 4008, SEPARATOR, HEADER_SIZE)
+                if not server_status: break
 
                 file_size = os.path.getsize(os.path.join("data", self.file))
 
@@ -99,11 +104,7 @@ class Client:
                 status, status_message = send_message(self, self.socket, message, HEADER_SIZE)
                 if not status: break
 
-                # Receive acknowledgement for file information (filename and size)
-                file_information_status = recv_status_ack(self, self.socket, 4001, SEPARATOR, HEADER_SIZE)
-                if not file_information_status: break
-
-                # Receive acknowledgement for file transfer, terminate connection if not successful
+                # Receive status acknowledgement that request is valid, terminate connection if not successful
                 transfer_file_status = recv_status_ack(self, self.socket, 4003, SEPARATOR, HEADER_SIZE)
                 if not transfer_file_status: break
 
@@ -143,6 +144,10 @@ class Client:
                 # if not get_request_status: break
 
             elif self.request == Command.LIST:
+                # Send acknowledgement to Server that Client is ready to receive Server directory size
+                STATUS_CODE = 4007
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
                 # Retrieve Server directory information (size of server_dir)
                 self.LOGGER.info(f"Retrieving Server Directory Information! [...]")
                 server_dir_size = recv_message(self, self.socket, SEPARATOR, HEADER_SIZE)
