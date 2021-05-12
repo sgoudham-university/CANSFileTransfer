@@ -9,6 +9,8 @@ from common.status_code import StatusCode
 def create_connection(host, port, local_machine, LOGGER):
     """
     Instantiates a connection for the given machine (Client/Server)
+    A timeout of 100 seconds has been implemented to ensure that the server does not endlessly listen and waste
+    system resources.
 
     :param host: Host of target machine
     :param port: Port of target machine
@@ -34,7 +36,7 @@ def create_connection(host, port, local_machine, LOGGER):
         sys.exit(1)
     else:
         if local_machine == "client":
-            LOGGER.info(f"Successfully Connected to [{host}:{port}]")
+            LOGGER.info(f"Successfully Connected To [{host}:{port}]")
         elif local_machine == "server":
             LOGGER.info("Booting Server [...]")
             LOGGER.info("Server Online!")
@@ -156,9 +158,9 @@ def recv_status_ack(self, general_socket, expected_status_code, SEPARATOR, HEADE
     """
     Receive a status acknowledgement message from the target machine (client/server)
 
+    :param self: Client/Server Instance
     :param general_socket: Client/Server socket
     :param expected_status_code: Status code to check against for logging
-    :param self: Client/Server Instance
     :param SEPARATOR: Separates the acknowledgement message
     :param HEADER_SIZE: Characters used to separate meaningful information from length of message
     :returns: complete_status_message
@@ -293,7 +295,8 @@ def recv_listing(self, general_socket, dir_size):
 
 def progress_bar(self, count, total, status):
     """
-    Shows visual progress of the file transfer in progress (sending and receiving)
+    Shows visual progress of the byte transfer in progress between Client/Server
+    Used when sending/receiving files and Server listings
 
     :param self:
     :param count:
@@ -309,8 +312,8 @@ def progress_bar(self, count, total, status):
     transfer_percent = round(100.0 * count / float(total), 2)
     file_bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
-    sys.stdout.write(
-        f"[{self.LOGGER.host}:{self.LOGGER.port}] -> |{file_bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
+    prefix = f"[{self.LOGGER.host}:{self.LOGGER.port}]"
+    sys.stdout.write(f"{prefix} -> |{file_bar}| {file_size_bytes} | {transfer_percent}% | {status}...\r")
     sys.stdout.flush()
 
     if count >= total: print()
