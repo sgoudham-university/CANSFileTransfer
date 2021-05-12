@@ -34,7 +34,7 @@ class Logger:
 
         for item_name, item_type in dir_dict.items():
             spaces = 2 if item_type == "[DIR]" else 1
-            print(f"[{self.host}:{self.port}] -> {item_type}{' ':>{spaces}}---> {item_name}")
+            print(f"[{self.host}:{self.port}] ->   {item_type}{' ':>{spaces}}---> {item_name}")
 
     def status_code(self, code):
         """
