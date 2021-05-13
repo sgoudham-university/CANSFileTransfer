@@ -8,7 +8,7 @@ from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
 from common.util import create_connection, read_file, is_file_present, send_status_ack, recv_message, recv_status_ack, \
-    get_dir, send_message, send_listing
+    get_dir, send_message, send_listing, send_file
 
 
 class Server:
@@ -143,59 +143,51 @@ class Server:
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     elif request_type == Command.GET:
-                        pass
                         # If client has file locally, terminate connection
-                        list_request_status = recv_status_ack(self, cli_socket, 4001, SEPARATOR, HEADER_SIZE)
-                        if not list_request_status: break
-                        #
-                        # file_information = recv_request(self, cli_socket, SEPARATOR, HEADER_SIZE)
-                        # if not request_type: break
-                        #
-                        # # Receive file_name. Terminate connection if malformed request_header
-                        # try:
-                        #     file_name, file_size = file_information.split(SEPARATOR)
-                        #     file_size = int(file_size)
-                        # except ValueError as vle:
-                        #     self.LOGGER.status_code(StatusCode.code[3000] + vle)
-                        #     STATUS_CODE = 3000
-                        #     STATUS_MESSAGE = vle
-                        #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                        #     break
-                        #
-                        # # Send acknowledgement back to client that filename and filesize was received successfully
-                        # STATUS_CODE = 4001
-                        # send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                        #
-                        # # Receive filename
-                        #
-                        # # Send acknowledgement that file information was successfully retrieved
-                        #
-                        # # Check if file already exists, terminate connection if file does not exist on server
-                        # file_path = os.path.join("data", file_name)
-                        # if not isFilePresent(file_path):
-                        #     self.LOGGER.status_code(StatusCode.code[3004])
-                        #     STATUS_CODE = 3004
-                        #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                        #     break
-                        # else:
-                        #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                        #
-                        # # Send over requested file size to the client
-                        #
-                        # # Send over requested file data to the client
-                        # file_transfer_status, file_transfer_status_msg = transfer_file(self, cli_socket, file_path,
-                        #                                                                file_size)
-                        #
-                        # # Send acknowledgement back to client if file transfer was successful or not
-                        # if not file_transfer_status:
-                        #     self.LOGGER.status_code(StatusCode.code[3001] + file_transfer_status_msg)
-                        #     STATUS_CODE = 3001
-                        #     STATUS_MESSAGE = file_transfer_status_msg
-                        #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                        #     break
-                        # else:
-                        #     STATUS_CODE = 4002
-                        #     send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+                        get_request_status = recv_status_ack(self, cli_socket, 4004, SEPARATOR, HEADER_SIZE)
+                        if not get_request_status: break
+
+                        # Send status acknowledgement that Server is ready to receive file information
+                        STATUS_CODE = 4008
+                        send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
+                        # Receive file_name
+                        file_name = recv_message(self, cli_socket, SEPARATOR, HEADER_SIZE)
+                        if not request_type: break
+
+                        file_path = os.path.join("data", file_name)
+                        # Check if file doesn't exist locally. If file doesn't exist, terminate connection
+                        if not is_file_present(file_path):
+                            self.LOGGER.status_code(StatusCode.code[3004])
+                            STATUS_CODE = 3004
+                            send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+                            break
+
+                        # Send status acknowledgement that file is valid
+                        STATUS_CODE = 4009
+                        send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
+                        # If client not ready to receive file_size, terminate connection
+                        client_status = recv_status_ack(self, cli_socket, 4004, SEPARATOR, HEADER_SIZE)
+                        if not client_status: break
+
+                        file_size = os.path.getsize(os.path.join("data", file_name))
+                        # Send file information (file_size) to Client
+                        self.LOGGER.info(f"Sending File Information For '{self.file}' To Specified Client! [...]")
+                        status, status_message = send_message(self, cli_socket, file_size, HEADER_SIZE)
+                        if not status: break
+
+                        # If client not ready for file transfer, terminate connection
+                        client_status = recv_status_ack(self, cli_socket, 4003, SEPARATOR, HEADER_SIZE)
+                        if not client_status: break
+
+                        # Transfer file through buffering
+                        file_data_status, file_data_status_msg = send_file(self, cli_socket, file_path, file_size)
+                        if not file_data_status: break
+
+                        # Receive acknowledgement about get request success
+                        get_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
+                        if not get_request_status: break
 
                     elif request_type == Command.LIST:
                         # If Client is not ready to receive Server directory size, terminate connection

@@ -6,7 +6,7 @@ from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
 from common.util import create_connection, send_file, send_message, recv_status_ack, is_file_present, \
-    send_status_ack, recv_message, recv_listing
+    send_status_ack, recv_message, recv_listing, read_file
 
 
 class Client:
@@ -110,9 +110,7 @@ class Client:
 
                 # Transfer file through buffering
                 file_data_status, file_data_status_msg = send_file(self, self.socket, file_path, file_size)
-                if not file_data_status:
-                    self.LOGGER.status_code(StatusCode.code[3001] + file_data_status_msg)
-                    break
+                if not file_data_status: break
 
                 # Receive acknowledgement from server about put request success
                 put_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
@@ -126,22 +124,48 @@ class Client:
                     STATUS_CODE = 3007
                     send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                     break
-                #
-                # # Send acknowledgement to Server that client is ready to receive file
-                # STATUS_CODE = 4004
-                # send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
-                #
-                # # Send filename to Server
-                # self.LOGGER.info(f"Sending Requested File Information For '{self.file}' To Specified Server! [...]")
-                # status, status_message = send_request(self, self.socket, self.file, HEADER_SIZE)
-                # if not status: break
-                #
-                # # Receive file_data and write into file
-                # status, status_message = read_file(self, self.socket, self.file, file_size)
-                # if not status: break
-                #
-                # get_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
-                # if not get_request_status: break
+
+                # Send acknowledgement that Client is ready to receive file
+                STATUS_CODE = 4004
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
+                # Receive status acknowledgement that Server is ready to receive file information
+                server_status = recv_status_ack(self, self.socket, 4008, SEPARATOR, HEADER_SIZE)
+                if not server_status: break
+
+                # Send file information (file_name) to Server
+                self.LOGGER.info(f"Sending File Information For '{self.file}' To Specified Server! [...]")
+                status, status_message = send_message(self, self.socket, self.file, HEADER_SIZE)
+                if not status: break
+
+                # Receive status acknowledgement that file is now valid
+                file_status = recv_status_ack(self, self.socket, 4009, SEPARATOR, HEADER_SIZE)
+                if not file_status: break
+
+                # Send acknowledgement that Client is ready to receive file_size
+                STATUS_CODE = 4010
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
+                # Retrieve file_size
+                file_size = recv_message(self, self.socket, SEPARATOR, HEADER_SIZE)
+                if not file_size: break
+
+                # Send acknowledgement that Client is ready for file transfer (receiving file_data)
+                STATUS_CODE = 4003
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+
+                # Receive file_data and write into local file
+                status, status_message = read_file(self, self.socket, self.file, file_size)
+
+                # Send status acknowledgement if get request was successful or not
+                if not status:
+                    STATUS_CODE = 3001
+                    STATUS_MESSAGE = status_message
+                else:
+                    STATUS_CODE = 4002
+                    STATUS_MESSAGE = f"[{self.request}, {self.file}]"
+                self.LOGGER.status_code(StatusCode.code[STATUS_CODE] + STATUS_MESSAGE)
+                send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
             elif self.request == Command.LIST:
                 # Send acknowledgement to Server that Client is ready to receive Server directory size
