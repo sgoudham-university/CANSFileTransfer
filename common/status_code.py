@@ -32,9 +32,11 @@ class StatusCode:
         4001: "[SUCCESS 4001]: File Information Sent Successfully: ",
         4002: "[SUCCESS 4002]: Request Successful: ",
         4003: "[SUCCESS 4003]: Ready For File Transfer: ",
-        4004: "[SUCCESS 4004]: Client Ready To Receive File",
+        4004: "[SUCCESS 4004]: Client Ready To Receive File: ",
         4005: "[SUCCESS 4005]: Client File Exists: ",
         4006: "[SUCCESS 4006]: Client Received Server Directory Size Successfully: ",
         4007: "[SUCCESS 4007]: Client Ready To Receive Server Directory Size: ",
-        4008: "[SUCCESS 4008]: Server Ready To Receive File Information: "
+        4008: "[SUCCESS 4008]: Server Ready To Receive File Information: ",
+        4009: "[SUCCESS 4009]: Server Ready to Receive Filesize: ",
+        4010: "[SUCCESS 4010]: Client Ready To Receive Filesize: ",
     }
