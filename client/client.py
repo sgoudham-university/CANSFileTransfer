@@ -29,6 +29,7 @@ class Client:
         self.request = None
         self.file = None
         self.socket = None
+        self.data = os.path.join("data")
         self.LOGGER = None
 
         self.get_arguments()
@@ -155,7 +156,7 @@ class Client:
                 send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                 # Receive file_data and write into local file
-                status, status_message = read_file(self, self.socket, self.file, file_size)
+                status, status_message = read_file(self, self.socket, self.file, int(file_size))
 
                 # Send status acknowledgement if get request was successful or not
                 if not status:

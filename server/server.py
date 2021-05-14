@@ -160,7 +160,7 @@ class Server:
                         if not is_file_present(file_path):
                             self.LOGGER.status_code(StatusCode.code[3004])
                             STATUS_CODE = 3004
-                            send_status_ack(self, self.socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
+                            send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                             break
 
                         # Send status acknowledgement that file is valid
@@ -168,13 +168,13 @@ class Server:
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                         # If client not ready to receive file_size, terminate connection
-                        client_status = recv_status_ack(self, cli_socket, 4004, SEPARATOR, HEADER_SIZE)
+                        client_status = recv_status_ack(self, cli_socket, 4010, SEPARATOR, HEADER_SIZE)
                         if not client_status: break
 
                         file_size = os.path.getsize(os.path.join("data", file_name))
                         # Send file information (file_size) to Client
-                        self.LOGGER.info(f"Sending File Information For '{self.file}' To Specified Client! [...]")
-                        status, status_message = send_message(self, cli_socket, file_size, HEADER_SIZE)
+                        self.LOGGER.info(f"Sending File Information For '{file_name}' To Specified Client! [...]")
+                        status, status_message = send_message(self, cli_socket, str(file_size), HEADER_SIZE)
                         if not status: break
 
                         # If client not ready for file transfer, terminate connection
@@ -186,7 +186,7 @@ class Server:
                         if not file_data_status: break
 
                         # Receive acknowledgement about get request success
-                        get_request_status = recv_status_ack(self, self.socket, 4002, SEPARATOR, HEADER_SIZE)
+                        get_request_status = recv_status_ack(self, cli_socket, 4002, SEPARATOR, HEADER_SIZE)
                         if not get_request_status: break
 
                     elif request_type == Command.LIST:
