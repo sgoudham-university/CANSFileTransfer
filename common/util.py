@@ -246,7 +246,7 @@ def read_file(self, general_socket, file_name, file_size):
 
 def send_listing(self, general_socket, listing_dict):
     """
-    Send a directory listing to the target machine (Client/Server
+    Send a directory listing to the target machine (Client/Server)
 
     :param self: Client/Server instance
     :param general_socket: Client/Server socket
@@ -267,7 +267,14 @@ def send_listing(self, general_socket, listing_dict):
 
 
 def recv_listing(self, general_socket, dir_size):
-    """"""
+    """
+    Receive a directory listing from target machine (Client/Server)
+
+    :param self: Client/Server instance
+    :param general_socket: Client/Server socket
+    :param dir_size: The amount of bytes to receive from the target machine
+    :returns: dir_listing_dict, True (If Successful)
+    """
 
     dir_listing_bytes = b''
     recv_bytes = 0
@@ -296,12 +303,12 @@ def recv_listing(self, general_socket, dir_size):
 def progress_bar(self, count, total, status):
     """
     Shows visual progress of the byte transfer in progress between Client/Server
-    Used when sending/receiving files and Server listings
+    Used when sending/receiving files and Server directory listings
 
-    :param self:
-    :param count:
-    :param total:
-    :param status:
+    :param self: Client/Server instance
+    :param count: Bytes transferred
+    :param total: Total Number of Bytes to transfer
+    :param status: Status message to display beside the progress bar
     :returns: None
     """
 
