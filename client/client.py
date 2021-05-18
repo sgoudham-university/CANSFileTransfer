@@ -47,7 +47,7 @@ class Client:
         try:
             self.host = sys.argv[1]
             self.port = sys.argv[2]
-            self.request = sys.argv[3]
+            self.request = sys.argv[3].lower()
 
             if self.request == Command.PUT or self.request == Command.GET:
                 self.file = sys.argv[4]
