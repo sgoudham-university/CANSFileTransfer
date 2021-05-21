@@ -8,7 +8,7 @@ from common.status_code import StatusCode
 from common.command import Command
 from common.logger import Logger
 from common.util import create_connection, read_file, is_file_present, send_status_ack, recv_message, recv_status_ack, \
-    get_dir, send_message, send_listing, send_file
+    get_dir, send_message, send_listing, send_file, get_arguments
 
 
 class Server:
@@ -32,23 +32,9 @@ class Server:
         self.LOGGER = None
         self.data = os.path.join("data")
 
-        self.get_arguments()
-
+        get_arguments(self, "server")
         self.LOGGER = Logger(self.host, self.port)
         self.socket = create_connection(self.host, self.port, "server", self.LOGGER)
-
-    def get_arguments(self):
-        """
-        Get port to listen for client connections
-
-        :returns: None
-        """
-
-        try:
-            self.port = sys.argv[1]
-        except IndexError:
-            print(StatusCode.code[2002])
-            sys.exit(1)
 
     def handle(self):
         """
@@ -143,7 +129,7 @@ class Server:
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
                     elif request_type == Command.GET:
-                        # If client has file locally, terminate connection
+                        # If Client has file locally, terminate connection
                         get_request_status = recv_status_ack(self, cli_socket, 4004, SEPARATOR, HEADER_SIZE)
                         if not get_request_status: break
 
@@ -163,7 +149,7 @@ class Server:
                             send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
                             break
 
-                        # Send status acknowledgement that file is valid
+                        # Send status acknowledgement that filename is valid
                         STATUS_CODE = 4009
                         send_status_ack(self, cli_socket, STATUS_CODE, STATUS_MESSAGE, SEPARATOR, HEADER_SIZE)
 
@@ -171,21 +157,21 @@ class Server:
                         client_status = recv_status_ack(self, cli_socket, 4010, SEPARATOR, HEADER_SIZE)
                         if not client_status: break
 
+                        # Send file_size to Client
                         file_size = os.path.getsize(os.path.join("data", file_name))
-                        # Send file information (file_size) to Client
                         self.LOGGER.info(f"Sending File Information For '{file_name}' To Specified Client! [...]")
                         status, status_message = send_message(self, cli_socket, str(file_size), HEADER_SIZE)
                         if not status: break
 
-                        # If client not ready for file transfer, terminate connection
+                        # If Client not ready for file transfer, terminate connection
                         client_status = recv_status_ack(self, cli_socket, 4003, SEPARATOR, HEADER_SIZE)
                         if not client_status: break
 
-                        # Transfer file through buffering
+                        # Transfer file as as stream of bytes
                         file_data_status, file_data_status_msg = send_file(self, cli_socket, file_path, file_size)
                         if not file_data_status: break
 
-                        # Receive acknowledgement about get request success
+                        # Receive acknowledgement from Client if get request was successful or not
                         get_request_status = recv_status_ack(self, cli_socket, 4002, SEPARATOR, HEADER_SIZE)
                         if not get_request_status: break
 
@@ -202,7 +188,7 @@ class Server:
                         status, status_message = send_message(self, cli_socket, message, HEADER_SIZE)
                         if not status: break
 
-                        # If Client did not get Server Directory information, terminate connection
+                        # If Client is not ready to get Server listing, terminate connection
                         server_listing_size_status = recv_status_ack(self, cli_socket, 4006, SEPARATOR, HEADER_SIZE)
                         if not server_listing_size_status: break
 
