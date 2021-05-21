@@ -1,9 +1,51 @@
+import argparse
 import json
 import os
 import socket
 import sys
 
 from common.status_code import StatusCode
+
+
+def get_arguments(self, local_machine):
+    """
+    Retrieve arguments using the argparse library, complete with validation checking for port numbers and
+    different arguments
+
+    :param self: Client/Server instance
+    :param local_machine: The machine to retrieve arguments for
+    :returns: None
+    """
+
+    parser = argparse.ArgumentParser()
+
+    if local_machine == "client":
+        parser.add_argument("host", help="target machine's host")
+        parser.add_argument("port", help="target machine's port", type=int)
+
+        all_requests = parser.add_subparsers(help='all commands for server', dest='request', required=True)
+        put_request = all_requests.add_parser('put', help='puts the specified file onto server')
+        get_request = all_requests.add_parser('get', help='retrieves the specified file from server')
+        all_requests.add_parser('list', help='lists the server directory')
+
+        for request in put_request, get_request:
+            request_help = "file to transfer to server" if request == put_request else "file to retrieve from server"
+            request.add_argument('filename', help=request_help)
+
+    elif local_machine == "server":
+        parser.add_argument("port", help="target port for listening to connections", type=int)
+
+    args = parser.parse_args()
+
+    if args.port < 0 or args.port > 65535:
+        raise parser.error(StatusCode.code[2002])
+    self.port = args.port
+
+    if local_machine == "client":
+        self.host = args.host
+        self.request = args.request
+        if self.request != "list":
+            self.file = args.filename
 
 
 def create_connection(host, port, local_machine, LOGGER):
@@ -24,9 +66,9 @@ def create_connection(host, port, local_machine, LOGGER):
         general_socket.settimeout(100)
 
         if local_machine == "client":
-            general_socket.connect((host, int(port)))
+            general_socket.connect((host, port))
         elif local_machine == "server":
-            general_socket.bind((host, int(port)))
+            general_socket.bind((host, port))
             general_socket.listen(5)
     except socket.error as soe:
         LOGGER.info(soe)
