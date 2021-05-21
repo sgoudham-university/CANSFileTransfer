@@ -2,8 +2,6 @@ class StatusCode:
     """
     This class contains a dictionary mapping of all the status codes within the program, they are classed as follows:
 
-    1000 -> Status Codes for the Client
-
     2000 -> Status Codes for the Server
 
     3000 -> Error Codes shared between the Client & Server
@@ -12,12 +10,9 @@ class StatusCode:
     """
 
     code = {
-        1000: "[ERROR 1000]: Arguments Are Missing! E.g [python client.py <host> <port> <put file_name | get file_name | list>]",
-        1001: "[ERROR 1001]: Given Command Not Recognised! Terminating Client [...]",
-
         2000: "[ERROR 2000]: Timed Out - Terminating Server [...]",
         2001: "Listening For Client Connections [...]",
-        2002: "[ERROR 2002]: Arguments Are Missing! E.g [python server.py <port>]",
+        2002: "[ERROR 2002]: Port Number Not Valid! Should Be (0 -> 65,535)",
 
         3000: "Malformed Request Message: ",
         3001: "[ERROR 3001]: File Transfer Failure: ",
@@ -34,7 +29,7 @@ class StatusCode:
         4003: "[SUCCESS 4003]: Ready For File Transfer: ",
         4004: "[SUCCESS 4004]: Client Ready To Receive File: ",
         4005: "[SUCCESS 4005]: Client File Exists: ",
-        4006: "[SUCCESS 4006]: Client Received Server Directory Size Successfully: ",
+        4006: "[SUCCESS 4006]: Client Ready To Receive Server Listing: ",
         4007: "[SUCCESS 4007]: Client Ready To Receive Server Directory Size: ",
         4008: "[SUCCESS 4008]: Server Ready To Receive File Information: ",
         4009: "[SUCCESS 4009]: Server Ready to Receive Filesize: ",
